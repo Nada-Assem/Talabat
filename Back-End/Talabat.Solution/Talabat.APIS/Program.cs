@@ -1,9 +1,12 @@
 
+using Microsoft.EntityFrameworkCore;
+using Talabat.DataAcces.Data;
+
 namespace Talabat.APIS
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -14,7 +17,32 @@ namespace Talabat.APIS
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            builder.Services.AddDbContext<StoreContext>(Options=>
+            {
+                Options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+            });
             var app = builder.Build();
+
+            #region Create_Database
+                using var Scope = app.Services.CreateScope();
+                var services = Scope.ServiceProvider;
+                //ASK CLR for Creating Object from DbContext Explicitly
+                var _dbContext = services.GetRequiredService<StoreContext>();
+
+                var LoggerFactory = services.GetRequiredService<ILoggerFactory>();
+                try
+                {
+                    // Update-Database
+                    await _dbContext.Database.MigrateAsync();
+
+                }
+                catch (Exception ex)
+                {
+                    var log = LoggerFactory.CreateLogger<Program>();
+                    log.LogError(ex, "The Error Has Occurred During Apply The Migration");
+                }
+            #endregion
+
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
@@ -26,10 +54,7 @@ namespace Talabat.APIS
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
-
-
             app.MapControllers();
-
             app.Run();
         }
     }
