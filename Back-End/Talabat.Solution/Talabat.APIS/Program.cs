@@ -1,5 +1,7 @@
 
 using Microsoft.EntityFrameworkCore;
+using Talabat.Core.Repositories.Contract;
+using Talabat.DataAcces;
 using Talabat.DataAcces.Data;
 
 namespace Talabat.APIS
@@ -10,6 +12,7 @@ namespace Talabat.APIS
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            #region Services
             // Add services to the container.
 
             builder.Services.AddControllers();
@@ -17,14 +20,18 @@ namespace Talabat.APIS
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            builder.Services.AddDbContext<StoreContext>(Options=>
+            builder.Services.AddDbContext<StoreContext>(Options =>
             {
                 Options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
             });
+            builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+
             var app = builder.Build();
 
+            #endregion
+
             #region Create_Database
-                using var Scope = app.Services.CreateScope();
+            using var Scope = app.Services.CreateScope();
                 var services = Scope.ServiceProvider;
                 //ASK CLR for Creating Object from DbContext Explicitly
                 var _dbContext = services.GetRequiredService<StoreContext>();
@@ -34,6 +41,7 @@ namespace Talabat.APIS
                 {
                     // Update-Database
                     await _dbContext.Database.MigrateAsync();
+                     await StoreContextSeed.SeedAsync(_dbContext);
 
                 }
                 catch (Exception ex)
