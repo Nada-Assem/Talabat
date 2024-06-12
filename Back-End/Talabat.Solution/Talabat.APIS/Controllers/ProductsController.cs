@@ -1,5 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using Talabat.APIS.DTOS;
 using Talabat.Core.Entities;
 using Talabat.Core.Repositories.Contract;
 using Talabat.Core.Specifications.ProductSpecs;
@@ -12,28 +16,31 @@ namespace Talabat.APIS.Controllers
     public class ProductsController : ControllerBase
     {
         private readonly IGenericRepository<Product> _productRep;
+        private readonly IMapper _mapper;
 
-        public ProductsController(IGenericRepository<Product> ProductRep)
+        public ProductsController(IGenericRepository<Product> ProductRep , IMapper mapper)
         {
             _productRep = ProductRep;
+            _mapper = mapper;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Product>>> GetProduct()
+        public async Task<ActionResult<IEnumerable<ProductToReturnDto>>> GetProduct()
         {
             var spec = new ProductWithBrandAndCategorySpecifications(); 
             var result = await _productRep.GetAllWithSpecAsync(spec);
-            return Ok(result);
+            return Ok(_mapper.Map<IEnumerable<Product>, IEnumerable<ProductToReturnDto>>(result));
+
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Product>> GetById(int id)
+        public async Task<ActionResult<ProductToReturnDto>> GetById(int id)
         {
             var spec = new ProductWithBrandAndCategorySpecifications(id);
             var product = await _productRep.GetWithSpecAsync(spec);
             if (product == null)
                 return NotFound();
-            return Ok(product);
+            return Ok(_mapper.Map<Product , ProductToReturnDto>(product) );
         }
 
     }
