@@ -1,6 +1,9 @@
 
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Talabat.APIS.Errors;
 using Talabat.APIS.Helpers;
+using Talabat.APIS.Middlewares;
 using Talabat.Core.Repositories.Contract;
 using Talabat.DataAcces;
 using Talabat.DataAcces.Data;
@@ -28,6 +31,25 @@ namespace Talabat.APIS
 
             builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             builder.Services.AddAutoMapper(typeof(MappingProfiles));
+
+            // handle Validation Errors
+            builder.Services.Configure<ApiBehaviorOptions>(option =>
+            {
+                
+                option.InvalidModelStateResponseFactory = (ActionContext) =>
+                {
+                    var errors = ActionContext.ModelState.Where(P=> P.Value.Errors.Count() > 0 ) 
+                                              .SelectMany(P => P.Value.Errors)
+                                              .Select(E => E.ErrorMessage)
+                                              .ToArray();
+                    var validationErrorReponse = new ApiValidationErrorResponse()
+                    {
+                        Errors = errors 
+                    };
+                    return new BadRequestObjectResult(validationErrorReponse);
+                };
+            });
+
             var app = builder.Build();
 
             #endregion
@@ -54,6 +76,11 @@ namespace Talabat.APIS
             #endregion
 
 
+            #region Configure Kestrel Middlewares
+
+            //Adding the middleware that server exception handling 
+            app.UseMiddleware<ExceptionMiddleware>();
+
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
@@ -61,6 +88,7 @@ namespace Talabat.APIS
                 app.UseSwaggerUI();
             }
 
+            app.UseStatusCodePagesWithRedirects("/errors/{0}");
             app.UseHttpsRedirection();
 
             app.UseStaticFiles();
@@ -68,6 +96,10 @@ namespace Talabat.APIS
 
             app.UseAuthorization();
             app.MapControllers();
+
+            #endregion
+
+
             app.Run();
         }
     }
