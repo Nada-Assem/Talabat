@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Talabat.APIS.Errors;
+using Talabat.APIS.Extesions;
 using Talabat.APIS.Helpers;
 using Talabat.APIS.Middlewares;
 using Talabat.Core.Repositories.Contract;
@@ -20,35 +21,18 @@ namespace Talabat.APIS
             // Add services to the container.
 
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+
+            // Extension Method
+            builder.Services.AddSwaggerServices();
 
             builder.Services.AddDbContext<StoreContext>(Options =>
             {
                 Options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
             });
 
-            builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-            builder.Services.AddAutoMapper(typeof(MappingProfiles));
-
-            // handle Validation Errors
-            builder.Services.Configure<ApiBehaviorOptions>(option =>
-            {
-                
-                option.InvalidModelStateResponseFactory = (ActionContext) =>
-                {
-                    var errors = ActionContext.ModelState.Where(P=> P.Value.Errors.Count() > 0 ) 
-                                              .SelectMany(P => P.Value.Errors)
-                                              .Select(E => E.ErrorMessage)
-                                              .ToArray();
-                    var validationErrorReponse = new ApiValidationErrorResponse()
-                    {
-                        Errors = errors 
-                    };
-                    return new BadRequestObjectResult(validationErrorReponse);
-                };
-            });
+            // Extension Method
+            //ApplicationServicesExtension.AddApp1icationServices(builder.Services);
+            builder.Services.AddApp1icationServices();
 
             var app = builder.Build();
 
@@ -84,8 +68,8 @@ namespace Talabat.APIS
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
+                // Extension Method
+                app.UseSwaggerMiddleWares();
             }
 
             app.UseStatusCodePagesWithRedirects("/errors/{0}");
