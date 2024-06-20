@@ -31,7 +31,6 @@ namespace Talabat.APIS
             });
 
             // Extension Method
-            //ApplicationServicesExtension.AddApp1icationServices(builder.Services);
             builder.Services.AddApp1icationServices();
 
             var app = builder.Build();
