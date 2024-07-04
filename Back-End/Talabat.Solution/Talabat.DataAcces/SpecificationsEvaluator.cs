@@ -16,6 +16,11 @@ namespace Talabat.DataAcces
             var query = inputQuery;
             if (Spec.Criteria is not null)
                 query = query.Where(Spec.Criteria);
+            if(Spec.OrderBy is not null)
+                query = query.OrderBy(Spec.OrderBy);
+
+            else if(Spec.OrderByDesc is not null) 
+                query = query.OrderByDescending(Spec.OrderByDesc);  
 
             query = Spec.Includes.Aggregate(query, 
                 (CurrentQuery, ExpressionIncludes)
