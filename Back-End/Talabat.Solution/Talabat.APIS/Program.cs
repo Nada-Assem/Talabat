@@ -1,13 +1,19 @@
 
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Talabat.APIS.Errors;
 using Talabat.APIS.Extesions;
 using Talabat.APIS.Helpers;
 using Talabat.APIS.Middlewares;
+using Talabat.Core.Entities.Identity;
 using Talabat.Core.Repositories.Contract;
+using Talabat.Core.Services.Contract;
 using Talabat.DataAcces;
 using Talabat.DataAcces.Data;
+using Talabat.DataAcces.Identity;
+using Talabat.Service;
 
 namespace Talabat.APIS
 {
@@ -30,9 +36,20 @@ namespace Talabat.APIS
                 Options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
             });
 
+
+            builder.Services.AddDbContext<AppIdentityDbContext>(Options =>
+            {
+                Options.UseSqlServer(builder.Configuration.GetConnectionString("IdentityConnection"));
+            });
             // Extension Method
             builder.Services.AddApp1icationServices();
 
+            // Security Services
+            builder.Services.AddScoped<IAuthService, AuthService>();
+
+            builder.Services.AddIdentity<AppUser, IdentityRole>().AddEntityFrameworkStores<AppIdentityDbContext>();
+
+           
             var app = builder.Build();
 
             #endregion
@@ -40,15 +57,21 @@ namespace Talabat.APIS
             #region Create_Database
             using var Scope = app.Services.CreateScope();
                 var services = Scope.ServiceProvider;
-                //ASK CLR for Creating Object from DbContext Explicitly
+            //ASK CLR for Creating Object from DbContext Explicitly
+                var _Identity = services.GetRequiredService<AppIdentityDbContext>();
                 var _dbContext = services.GetRequiredService<StoreContext>();
 
                 var LoggerFactory = services.GetRequiredService<ILoggerFactory>();
                 try
                 {
                     // Update-Database
-                    await _dbContext.Database.MigrateAsync();
+                     await _dbContext.Database.MigrateAsync();
                      await StoreContextSeed.SeedAsync(_dbContext);
+                     await _Identity.Database.MigrateAsync();
+
+                    // seed user in Identity database
+                    var user_manger = services.GetRequiredService<UserManager<AppUser>>();
+                    AppldentityDbContextSeed.SeedUserAsync(user_manger);
 
                 }
                 catch (Exception ex)
